@@ -1,0 +1,71 @@
+#! /bin/bash
+
+VERSION="Version 1.0"
+AUTHOR="(c) 2013 Nick Walke (tubaguy50035@gmail.com)"
+
+PROGNAME=`/usr/bin/basename $0`
+
+STATE_OK=0
+STATE_CRITICAL=2
+
+function print_revision {
+        echo "$PROGNAME - $VERSION"
+}
+
+function print_usage {
+        echo "Usage: $PROGNAME -u <user> -p <password>"
+}
+
+function print_help {
+        print_revision
+        echo "$AUTHOR\n\nCheck Galera cluster status on local machine\n"
+        print_usage
+
+        /bin/cat <<__EOT
+
+Options:
+-h
+  Print detailed help screen
+-V
+  Print version information
+-u STRING
+  User name to perform status query with
+-p STRING
+  Password for user to perform status query with
+__EOT
+}
+
+USERNAME=''
+PASSWORD=''
+
+#Parse input
+while [ "$1" ]; do
+        case "$1" in
+                -h | --help)
+                        print_help
+                        exit $STATE_OK
+                        ;;
+                -V | --version)
+                        print_revision
+                        exit $STATE_OK
+                        ;;
+                -u | --user | --username | --user-name)
+                        USERNAME=$2
+                        shift 2
+                        ;;
+                -p | --password)
+                        PASSWORD=$2
+                        shift 2
+                        ;;
+        esac
+done
+
+WSREP_CLUSTER_STATUS=$(mysql -u $USERNAME -p$PASSWORD -s -N -e "SHOW STATUS LIKE 'wsrep_cluster_status';" | awk '{print $2}')
+
+if [[ "$WSREP_CLUSTER_STATUS" != "Primary" ]]; then
+        echo "NODE STATUS CRITICAL - Status: $WSREP_CLUSTER_STATUS"
+        exit $STATE_CRITICAL
+else
+        echo "NODE STATUS OKAY - Status: $WSREP_CLUSTER_STATUS"
+        exit $STATE_OKAY
+fi
