@@ -1,0 +1,97 @@
+#! /bin/bash
+
+VERSION="Version 1.0"
+AUTHOR="(c) 2013 Nick Walke (tubaguy50035@gmail.com)"
+
+PROGNAME=`/usr/bin/basename $0`
+
+STATE_OK=0
+STATE_WARNING=1
+STATE_CRITICAL=2
+STATE_UNKNOWN=3
+
+function print_revision {
+        echo "$PROGNAME - $VERSION"
+}
+
+function print_usage {
+        echo "Usage: $PROGNAME -u <user> -p <password> -w <limit> -c <limit>"
+}
+
+function print_help {
+        print_revision
+        echo "$AUTHOR\n\nCheck Galera cluster health on local machine\n"
+        print_usage
+
+        /bin/cat <<__EOT
+
+Options:
+-h
+  Print detailed help screen
+-V
+  Print version information
+-u STRING
+  User name to perform status query with
+-p STRING
+  Password for user to perform status query with
+-w FLOAT
+  Exit with WARNING status if more than FLOAT number of replication lag
+-c FLOAT
+  Exit with CRITICAL status if more than FLOAT number of replication lag
+__EOT
+}
+
+USERNAME=''
+PASSWORD=''
+WARNING_LIMIT=
+CRITICAL_LIMIT=
+
+#Parse input
+while [ "$1" ]; do
+        case "$1" in
+                -h | --help)
+                        print_help
+                        exit $STATE_OK
+                        ;;
+                -V | --version)
+                        print_revision
+                        exist $STATE_OK
+                        ;;
+                -u | --user | --username | --user-name)
+                        USERNAME=$2
+                        shift 2
+                        ;;
+                -p | --password)
+                        PASSWORD=$2
+                        shift 2
+                        ;;
+                -w | --warning)
+                        WARNING_LIMIT=$2
+                        shift 2
+                        ;;
+                -c | --critical)
+                        CRITICAL_LIMIT=$2
+                        shift 2
+                        ;;
+        esac
+done
+
+WSREP_FLOW_CONTROL_PAUSED=$(mysql -u $USERNAME -p$PASSWORD -s -N -e "SHOW STATUS LIKE 'wsrep_flow_control_paused';" | awk '{print $2}')
+
+if [[ "$WARNING_LIMIT" -lt "$CRITICAL_LIMIT" ]]; then
+        #The warning limit must be greater than the critical limit
+        echo "$PROGNAME: Warning limit must be less than the critical limit"
+        print_usage
+        exit $STATE_UNKNOWN
+fi
+
+if [[ "$WSREP_FLOW_CONTROL_PAUSED" -ge "$CRITICAL_LIMIT" ]]; then
+        echo "NODE FLOW CONTROL CRITICAL - $WSREP_FLOW_CONTROL_PAUSED"
+        exit $STATE_CRITICAL
+elif [[ "$WSREP_FLOW_CONTROL_PAUSED" -ge "$WARNING_LIMIT" ]]; then
+        echo "NODE FLOW CONTROL WARNING - $WSREP_FLOW_CONTROL_PAUSED"
+        exit $STATE_WARNING
+else
+        echo "NODE FLOW CONTROL OKAY - $WSREP_FLOW_CONTROL_PAUSED"
+        exit $STATE_OKAY
+fi
