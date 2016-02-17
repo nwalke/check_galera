@@ -78,17 +78,17 @@ done
 
 WSREP_FLOW_CONTROL_PAUSED=$(mysql -u $USERNAME -p$PASSWORD -s -N -e "SHOW STATUS LIKE 'wsrep_flow_control_paused';" | awk '{print $2}')
 
-if [[ "$WARNING_LIMIT" -lt "$CRITICAL_LIMIT" ]]; then
+if [[ $(echo $WARNING_LIMIT < $CRITICAL_LIMIT | bc ) == 1 ]]; then
         #The warning limit must be greater than the critical limit
         echo "$PROGNAME: Warning limit must be less than the critical limit"
         print_usage
         exit $STATE_UNKNOWN
 fi
 
-if [[ "$WSREP_FLOW_CONTROL_PAUSED" -ge "$CRITICAL_LIMIT" ]]; then
+if [[ $(echo $WSREP_FLOW_CONTROL_PAUSED > $CRITICAL_LIMIT | bc) == 1 ]]; then
         echo "NODE FLOW CONTROL CRITICAL - $WSREP_FLOW_CONTROL_PAUSED"
         exit $STATE_CRITICAL
-elif [[ "$WSREP_FLOW_CONTROL_PAUSED" -ge "$WARNING_LIMIT" ]]; then
+elif [[ $(echo $WSREP_FLOW_CONTROL_PAUSED > $WARNING_LIMIT | bc) == 1 ]]; then
         echo "NODE FLOW CONTROL WARNING - $WSREP_FLOW_CONTROL_PAUSED"
         exit $STATE_WARNING
 else
