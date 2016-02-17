@@ -55,7 +55,7 @@ while [ "$1" ]; do
                         ;;
                 -V | --version)
                         print_revision
-                        exist $STATE_OK
+                        exit $STATE_OK
                         ;;
                 -u | --user | --username | --user-name)
                         USERNAME=$2
