@@ -1,6 +1,6 @@
 #! /bin/bash
 
-VERSION="Version 1.0"
+VERSION="Version 1.1"
 AUTHOR="(c) 2013 Nick Walke (tubaguy50035@gmail.com)"
 
 PROGNAME=`/usr/bin/basename $0`
